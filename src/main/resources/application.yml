@@ -1,0 +1,57 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/identity_vault
+    username: postgres
+    password: 123456789
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+       format_sql: true
+
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 86400
+
+  # Spring Mail
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: u7uzuz@gmail.com
+    password: liccigwtcfzweomp
+    protocol: smtp
+    tls: true
+    properties:
+      mail:
+       smtp:
+        auth: true
+        starttls:
+         enable: true
+
+# JWT Configuration
+jwt:
+  secret: ICA4lIjyEY5wxBe/JCBuLp15DXrYEYTrmmGnoX/Ejjs=
+  expiration: 86400000
+
+# Logging Level
+logging:
+  level:
+    org.springframework: INFO
+    com.project.digitalidentityvault: DEBUG
+
+scheduler:
+  inactivity:
+    days: 30
+
+document:
+  basePath: E:/
