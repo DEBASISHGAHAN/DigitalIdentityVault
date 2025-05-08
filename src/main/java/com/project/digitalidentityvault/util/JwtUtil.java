@@ -22,7 +22,6 @@ public class JwtUtil {
     private long jwtExpirationMs;
 
     public String generateToken(String email){
-        log.info("Generating JWT for email: {}", email);
         return Jwts.builder()
                 .setSubject(email)
                 .setIssuedAt(new Date())
