@@ -30,7 +30,6 @@ spring:
     username: u7uzuz@gmail.com
     password: liccigwtcfzweomp
     protocol: smtp
-    tls: true
     properties:
       mail:
        smtp:
@@ -42,12 +41,6 @@ spring:
 jwt:
   secret: ICA4lIjyEY5wxBe/JCBuLp15DXrYEYTrmmGnoX/Ejjs=
   expiration: 86400000
-
-# Logging Level
-logging:
-  level:
-    org.springframework: INFO
-    com.project.digitalidentityvault: DEBUG
 
 scheduler:
   inactivity:
