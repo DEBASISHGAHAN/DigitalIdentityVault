@@ -12,13 +12,11 @@ public class Constants {
     public static final String DOCUMENT_UPLOAD = "Document Uploaded Successfully";
     public static final String USER_EXISTED = "Email Already Registered!, Please Verify OTP";
     public static final String REGISTERED_SUBJECT = "OTP Verification";
-    public static final String DOCUMENT_SUBJECT = "Document View OTP Verification";
     public static final String USER_NOT_FOUND = "User Not Found";
     public static final String ACCOUNT_VERIFICATION = "Account Verified Successfully.";
     public static final String VERIFIED_USER = "User is already verified";
     public static final String RESEND_OTP = "OTP resent successfully";
     public static final String USER_LOGOUT = "Logged out successfully";
-    public static final String FILE_NOT_FOUND = "File Not Found";
     public static final Long DOCUMENT_UPLOAD_MAX_SIZE_MB = 10*1024*1024L;
     public static final List<String> FILE_EXTENSION= List.of("png", "jpg", "jpeg", "pdf");
     public static final String FILE_EMPTY = "File is empty. Please re-upload";
