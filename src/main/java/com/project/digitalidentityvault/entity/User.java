@@ -24,7 +24,7 @@ public class User {
     private Boolean verified;
     private LocalDateTime lastActiveAt;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Document> documents = new HashSet<>();
 }
 
