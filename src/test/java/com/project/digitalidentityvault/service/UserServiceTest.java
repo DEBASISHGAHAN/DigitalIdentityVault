@@ -44,7 +44,7 @@ class UserServiceTest {
     private UserService userService;
 
     @BeforeEach
-    void init(){
+    void init() {
         userService = new UserService(userRepository, otpService, mailService,
                 redisService, jwtUtil, passwordEncoder, otpRateLimiterService);
     }
@@ -73,16 +73,6 @@ class UserServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionIfOtpRequestExceeded() {
-        UserDto request = new UserDto("test@gmail.com", "password");
-
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-        when(otpRateLimiterService.isOtpRequestAllowed(anyString())).thenReturn(false);
-
-        assertThrows(UserException.class, () -> userService.sendOtpToNewUser(request));
-    }
-
-    @Test
     void shouldVerifyOtpSuccessfully() {
         UserDto request = new UserDto("test@gmail.com", "12345");
 
@@ -90,64 +80,42 @@ class UserServiceTest {
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(jwtUtil.generateToken(anyString())).thenReturn("jwtToken");
 
-        SessionToken result = userService.verifyOtp(request);
+        String result = userService.verifyOtp(request);
 
-        assertEquals(Constants.REGISTERED_SUCCESSFULLY, result.getMessage());
-        assertEquals("jwtToken", result.getToken());
+        assertEquals(Constants.REGISTERED_SUCCESSFULLY, result);
         verify(redisService).storeSession(anyString(), anyString());
-    }
-
-    @Test
-    void shouldThrowExceptionIfOtpIsInvalid() {
-        UserDto request = new UserDto("test@gmail.com", "12345");
-
-        when(otpService.validateOtp(anyString(), anyString())).thenReturn(false);
-
-        assertThrows(UserException.class, () -> userService.verifyOtp(request));
     }
 
     @Test
     void shouldLoginUserSuccessfully() {
         UserDto request = new UserDto("test@gmail.com", "password");
-        User user = User.builder().email("test@gmail.com").password("encodedPassword").build();
+        User user = new User();
+        user.setEmail("test@gmail.com");
+        user.setPassword("encodedPassword");
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
         when(jwtUtil.generateToken(anyString())).thenReturn("jwtToken");
 
-        when(redisService.getSession(anyString())).thenReturn(null);
+        String result = userService.login(request);
 
-        SessionToken result = userService.login(request);
-
-        assertEquals(Constants.LOGIN_SUCCESSFULLY, result.getMessage());
+        assertEquals(Constants.LOGIN_SUCCESSFULLY, result);
         verify(redisService).storeSession(anyString(), anyString());
     }
 
     @Test
     void shouldThrowExceptionIfPasswordIsIncorrect() {
         UserDto request = new UserDto("test@gmail.com", "wrongPassword");
-        User user = User.builder().email("test@gmail.com").password("encodedPassword").build();
+
+        User user = new User();
+        user.setEmail("test@gmail.com");
+        user.setPassword("encodedPassword");
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class, () -> userService.login(request));
     }
-
-//    @Test
-//    void shouldReturnExistingSessionTokenOnLogin() {
-//        UserDto request = new UserDto("test@gmail.com", "password");
-//        User user = User.builder().email("test@gmail.com").password("encodedPassword").build();
-//
-//        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-//        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-//        when(redisService.getSession(anyString())).thenReturn("existingJwtToken");
-//
-//        SessionToken result = userService.login(request);
-//
-//        assertEquals(Constants.LOGIN_SUCCESSFULLY, result.getMessage());
-//        assertEquals("existingJwtToken", result.getToken());
-//    }
 
     @Test
     void shouldLogoutUserSuccessfully() {

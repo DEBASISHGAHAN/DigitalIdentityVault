@@ -1,6 +1,7 @@
 package com.project.digitalidentityvault.controller;
 
 import com.project.digitalidentityvault.dto.DocumentDto;
+import com.project.digitalidentityvault.dto.UserDto;
 import com.project.digitalidentityvault.entity.Document;
 import com.project.digitalidentityvault.exception.FileUploadException;
 import com.project.digitalidentityvault.service.DocumentService;
@@ -28,15 +29,15 @@ public class DocumentController {
         return ResponseEntity.ok(Constants.DOCUMENT_UPLOAD);
     }
 
-    @PostMapping("/verify-otp")
-    public ResponseEntity<String> verifyOtp(
-            @RequestBody String email, @RequestBody String otp, @RequestHeader("Authorization") String token) {
-        return ResponseEntity.ok(documentService.verifyOtp(email, otp, token));
+    @PostMapping("/send-otp")
+    public ResponseEntity<String> sendViewDocumentOtp(
+            @RequestBody String email, @RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(documentService.sendViewDocumentOtp(email, token));
     }
 
     @GetMapping("/view")
-    public ResponseEntity<List<DocumentDto>> viewDocuments(@RequestParam String email,
+    public ResponseEntity<List<DocumentDto>> viewDocuments(@RequestParam UserDto user,
                                                         @RequestHeader("Authorization") String token) throws UsernameNotFoundException {
-        return ResponseEntity.ok(documentService.viewDocuments(email, token));
+        return ResponseEntity.ok(documentService.viewDocuments(user, token));
     }
 }

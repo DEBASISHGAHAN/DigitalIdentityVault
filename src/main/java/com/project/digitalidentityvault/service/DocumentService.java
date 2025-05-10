@@ -1,6 +1,7 @@
 package com.project.digitalidentityvault.service;
 
 import com.project.digitalidentityvault.dto.DocumentDto;
+import com.project.digitalidentityvault.dto.UserDto;
 import com.project.digitalidentityvault.entity.Document;
 import com.project.digitalidentityvault.entity.User;
 import com.project.digitalidentityvault.exception.FileUploadException;
@@ -8,7 +9,6 @@ import com.project.digitalidentityvault.exception.UserException;
 import com.project.digitalidentityvault.repository.DocumentRepository;
 import com.project.digitalidentityvault.repository.UserRepository;
 import com.project.digitalidentityvault.util.Constants;
-import com.project.digitalidentityvault.util.Validation;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,18 +62,14 @@ public class DocumentService {
         documentRepository.save(document);
     }
 
-    public List<DocumentDto> viewDocuments(String email, String token) throws UsernameNotFoundException {
-        log.info("Fetching documents for user: {}", email);
+    public List<DocumentDto> viewDocuments(UserDto user, String token) throws UsernameNotFoundException {
+        log.info("Fetching documents for user: {}", user.getEmail());
         // Validate Session
-        validateSession(email, token);
-        if (!otpRateLimiterService.isOtpRequestAllowed(email)) {
-            throw new UserException(Constants.OTP_REQUEST_EXCEED);
+        validateSession(user.getEmail(), token);
+        if (!otpService.validateOtp(user.getEmail(), user.getOtp())){
+            throw new UserException(Constants.INVALID_OTP);
         }
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException(Constants.USER_NOT_FOUND));
-        sendOtpToUser(email);
-
-        List<Document> documents = documentRepository.findByUserId(user.getId());
+        List<Document> documents = documentRepository.findByUserId(user.getUserId());
 
         return documents.stream()
                 .map(doc -> new DocumentDto(
@@ -82,12 +78,15 @@ public class DocumentService {
                 .toList();
     }
 
-    public String verifyOtp(String email, String otp, String token) {
+    public String sendViewDocumentOtp(String email, String token) {
         validateSession(email, token);
-        if (!otpService.validateOtp(email, otp)){
-            throw new UserException(Constants.INVALID_OTP);
+        if (!otpRateLimiterService.isOtpRequestAllowed(email)) {
+            throw new UserException(Constants.OTP_REQUEST_EXCEED);
         }
-        return Constants.OTP_VERIFIED;
+        String otp = otpService.generateOtp(email);
+        log.info("Generated OTP for {}: {}", email, otp);
+        mailService.sendOtpMail(email, "OTP Verification", otp);
+        return Constants.SEND_OTP;
     }
 
     private User validateDocumentRequest(DocumentDto request) throws FileNotFoundException, FileUploadException {
@@ -118,17 +117,9 @@ public class DocumentService {
     }
 
     private void validateSession(String email, String token) {
-        Optional<String> sessionOpt = redisService.getSession(email);
-        String session = sessionOpt.orElseThrow(() -> new UserException(Constants.INVALID_SESSION));
-        System.out.println(session);
+        String session = redisService.getSession(email);
         if (session.isEmpty() || !session.equals(token)) {
             throw new UserException(Constants.INVALID_SESSION);
         }
-    }
-
-    private void sendOtpToUser(String email) {
-        String otp = otpService.generateOtp(email);
-        log.info("Generated OTP for {}: {}", email, otp);
-        mailService.sendOtpMail(email, "OTP Verification", otp);
     }
 }

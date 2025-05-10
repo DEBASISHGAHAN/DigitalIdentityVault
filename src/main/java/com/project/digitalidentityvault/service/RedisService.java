@@ -1,5 +1,7 @@
 package com.project.digitalidentityvault.service;
 
+import com.project.digitalidentityvault.util.Constants;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -35,8 +37,9 @@ public class RedisService {
         redisTemplate.opsForValue().set(email, jwtToken, sessionTtl, TimeUnit.SECONDS);
     }
 
-    public Optional<String> getSession(String email) {
-        return Optional.ofNullable((String) redisTemplate.opsForValue().get(email));
+    public String getSession(String email) {
+        return Optional.ofNullable((String) redisTemplate.opsForValue().get(email))
+                .orElseThrow(() -> new JwtException(Constants.INVALID_SESSION));
     }
 
     public void deleteSession(String email) {

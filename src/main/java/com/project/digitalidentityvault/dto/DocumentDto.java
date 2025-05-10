@@ -1,14 +1,16 @@
 package com.project.digitalidentityvault.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.Serializable;
-
 @Getter
 @Setter
-public class DocumentDto implements Serializable {
+@AllArgsConstructor
+@NoArgsConstructor
+public class DocumentDto {
     private String email;
     private String type;
     private MultipartFile file;

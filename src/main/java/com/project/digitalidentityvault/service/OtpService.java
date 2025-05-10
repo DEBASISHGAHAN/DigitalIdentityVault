@@ -4,8 +4,6 @@ import com.project.digitalidentityvault.util.OtpGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class OtpService {

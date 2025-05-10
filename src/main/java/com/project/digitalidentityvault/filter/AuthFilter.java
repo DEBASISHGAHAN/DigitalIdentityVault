@@ -1,7 +1,9 @@
 package com.project.digitalidentityvault.filter;
 
 import com.project.digitalidentityvault.service.RedisService;
+import com.project.digitalidentityvault.util.Constants;
 import com.project.digitalidentityvault.util.JwtUtil;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,8 +17,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Date;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -31,38 +31,29 @@ public class AuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
-        String token = null;
-        String email = null;
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.replace("Bearer ", "");
-            try {
-                Map<String, Object> payload = jwtUtil.extractAllClaims(token);
-                email = (String) payload.get("sub");
-                Date expiration = (Date) payload.get("exp");
-
-                log.info("Extracted Email: {}", email);
-                log.info("Expiration: {}", expiration);
-            } catch (Exception e) {
-                log.error("Invalid JWT Token: {}", e.getMessage());
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT Token");
-                return;
-            }
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
         }
 
-        if (email != null) {
-            Optional<String> session = redisService.getSession(email);
-            if (session.isPresent() && session.equals(token)) {
-                log.info("Valid session found for email: {}", email);
-                SecurityContextHolder.getContext().setAuthentication(
-                        new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList())
-                );
-            } else {
-                log.warn("Invalid session or JWT mismatch for email: {}", email);
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Session or JWT Token");
-                return;
-            }
+        String token = authHeader.replace("Bearer ", "");
+        String email = jwtUtil.extractEmail(token);
+
+        if (email == null || !jwtUtil.isTokenValid(token, email)) {
+            log.warn("Invalid JWT Token");
+            throw new JwtException(Constants.INVALID_SESSION);
         }
+
+        String session = redisService.getSession(email);
+        if (session.isEmpty() || !session.equals(token)) {
+            log.warn("Invalid session for email: {}", email);
+            throw new JwtException(Constants.INVALID_SESSION);
+        }
+
+        log.info("Authenticated user: {}", email);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList())
+        );
 
         filterChain.doFilter(request, response);
     }

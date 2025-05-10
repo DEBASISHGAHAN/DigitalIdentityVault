@@ -7,7 +7,6 @@ import com.project.digitalidentityvault.exception.UserAlreadyExistsException;
 import com.project.digitalidentityvault.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

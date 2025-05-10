@@ -88,8 +88,7 @@ public class UserService {
         userRepository.save(user);
         log.info("User login successful: {}", request.getEmail());
         // Generate Token
-        Optional<String> existingSession = redisService.getSession(request.getEmail());
-        System.out.println(existingSession);
+        String existingSession = redisService.getSession(request.getEmail());
         if (existingSession.isEmpty()){
             String token = jwtUtil.generateToken(user.getEmail());
             log.info("Generated JWT: {}", token);
