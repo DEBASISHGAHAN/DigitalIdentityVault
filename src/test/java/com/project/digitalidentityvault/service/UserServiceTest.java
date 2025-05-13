@@ -4,7 +4,6 @@ import com.project.digitalidentityvault.dto.UserDto;
 import com.project.digitalidentityvault.entity.User;
 import com.project.digitalidentityvault.exception.InvalidCredentialsException;
 import com.project.digitalidentityvault.exception.UserAlreadyExistsException;
-import com.project.digitalidentityvault.exception.UserException;
 import com.project.digitalidentityvault.repository.UserRepository;
 import com.project.digitalidentityvault.util.Constants;
 import com.project.digitalidentityvault.util.JwtUtil;

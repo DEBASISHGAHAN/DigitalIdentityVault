@@ -2,12 +2,10 @@ package com.project.digitalidentityvault.controller;
 
 import com.project.digitalidentityvault.dto.DocumentDto;
 import com.project.digitalidentityvault.dto.UserDto;
-import com.project.digitalidentityvault.entity.Document;
 import com.project.digitalidentityvault.exception.FileUploadException;
 import com.project.digitalidentityvault.service.DocumentService;
 import com.project.digitalidentityvault.util.Constants;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +35,8 @@ public class DocumentController {
 
     @GetMapping("/view")
     public ResponseEntity<List<DocumentDto>> viewDocuments(@RequestParam UserDto user,
-                                                        @RequestHeader("Authorization") String token) throws UsernameNotFoundException {
+                                                        @RequestHeader("Authorization") String token)
+            throws UsernameNotFoundException {
         return ResponseEntity.ok(documentService.viewDocuments(user, token));
     }
 }

@@ -41,8 +41,10 @@ public class OtpRateLimiterService {
         }
         // Allow request if no timestamp or 60 seconds have passed
         if (lastRequestTimestamp == null || has60SecondsPassed(lastRequestTimestamp)) {
-            redisTemplate.opsForValue().set(timestampKey, String.valueOf(System.currentTimeMillis()), otpRetryDuration, TimeUnit.SECONDS);
-            redisTemplate.opsForValue().set(attemptsKey, String.valueOf(attempts == null ? 1 : attempts + 1), otpRetryDuration, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(timestampKey, String.valueOf(System.currentTimeMillis()),
+                    otpRetryDuration, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(attemptsKey, String.valueOf(attempts == null ? 1 : attempts + 1),
+                    otpRetryDuration, TimeUnit.SECONDS);
             return true;
         }
         return false;

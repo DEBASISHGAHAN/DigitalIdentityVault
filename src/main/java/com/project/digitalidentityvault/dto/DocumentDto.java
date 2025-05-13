@@ -18,3 +18,4 @@ public class DocumentDto {
     public DocumentDto(String type, String filePath) {
     }
 }
+

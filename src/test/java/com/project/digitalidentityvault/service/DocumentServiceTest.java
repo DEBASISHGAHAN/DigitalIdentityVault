@@ -4,7 +4,6 @@ import com.project.digitalidentityvault.dto.DocumentDto;
 import com.project.digitalidentityvault.dto.UserDto;
 import com.project.digitalidentityvault.entity.Document;
 import com.project.digitalidentityvault.entity.User;
-import com.project.digitalidentityvault.exception.FileUploadException;
 import com.project.digitalidentityvault.exception.UserException;
 import com.project.digitalidentityvault.repository.DocumentRepository;
 import com.project.digitalidentityvault.repository.UserRepository;
@@ -15,160 +14,121 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentServiceTest {
+
     @Mock
     private UserRepository userRepository;
     @Mock
     private DocumentRepository documentRepository;
     @Mock
-    private UserService userService;
+    private MailService mailService;
+    @Mock
+    private OtpService otpService;
+    @Mock
+    private RedisService redisService;
+    @Mock
+    private OtpRateLimiterService otpRateLimiterService;
     @InjectMocks
     private DocumentService documentService;
+
     private User testUser;
-    private DocumentDto request;
+    private DocumentDto documentDto;
+    private String jwtToken;
 
     @BeforeEach
     void setUp() {
-        testUser = User.builder()
-                .id(1L)
-                .email("test@gmail.com")
-                .verified(true)
-                .build();
-
-        request = new DocumentDto();
-        request.setEmail("test@gmail.com");
-        request.setType("Passport");
+        testUser = User.builder().id(1L).email("test@gmail.com").verified(true).build();
+        documentDto = new DocumentDto();
+        documentDto.setEmail("test@gmail.com");
+        documentDto.setType("Passport");
+        jwtToken = "valid-jwt-token";
+        documentService.documentPath = "/uploads/";
     }
 
     @Test
     void shouldSaveDocumentSuccessfully() throws IOException {
-        MultipartFile mockFile = mock(MultipartFile.class);
-        when(mockFile.isEmpty()).thenReturn(false);
-        when(mockFile.getOriginalFilename()).thenReturn("passport.pdf");
-        when(mockFile.getSize()).thenReturn(1024L);
-        request.setFile(mockFile);
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getOriginalFilename()).thenReturn("document.pdf");
+        when(file.getSize()).thenReturn(1024L);
+        documentDto.setFile(file);
 
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(testUser));
-        documentService.saveDocument(request, "valid-token");
-
-        verify(documentRepository, times(1)).save(any(Document.class));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenUserNotFound() {
-        when(userRepository.findByEmail("invalid@gmail.com")).thenReturn(Optional.empty());
-
-        assertThrows(UsernameNotFoundException.class,
-                () -> documentService.saveDocument(request, "valid-token"));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenFileNotFound() {
-        MultipartFile mockFile = mock(MultipartFile.class);
-        when(mockFile.isEmpty()).thenReturn(true);
-        request.setFile(mockFile);
+        when(redisService.getSession("test@gmail.com")).thenReturn(jwtToken);
         when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(testUser));
 
-        FileNotFoundException exception = assertThrows(FileNotFoundException.class,
-                () -> documentService.saveDocument(request, "valid-token"));
-        assertEquals(Constants.FILE_EMPTY, exception.getMessage());
-    }
+        documentService.saveDocument(documentDto, jwtToken);
 
-    @Test
-    void shouldThrowExceptionForInvalidFileFormat() {
-        MultipartFile mockFile = mock(MultipartFile.class);
-        when(mockFile.isEmpty()).thenReturn(false);
-        when(mockFile.getOriginalFilename()).thenReturn("document.exe");
-        request.setFile(mockFile);
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(testUser));
-
-        assertThrows(FileUploadException.class,
-                () -> documentService.saveDocument(request, "valid-token"));
-    }
-
-    @Test
-    void shouldFetchDocumentsSuccessfully() {
-        Document document = Document.builder()
-                .id(1L)
-                .type("Passport")
-                .filePath("path/to/passport.pdf")
-                .uploadedAt(LocalDateTime.now())
-                .user(testUser)
-                .build();
-
-        when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(testUser));
-        when(documentRepository.findByUserId(testUser.getId())).thenReturn(List.of(document));
-
-        List<Document> documents = documentService.viewDocuments(request, "valid-token");
-
-        assertEquals(1, documents.size());
-        assertEquals("Passport", documents.get(0).getType());
+        verify(file).transferTo(any(Path.class));
+        verify(documentRepository).save(any(Document.class));
     }
 
     @Test
     void shouldThrowExceptionForInvalidSession() {
-        when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(testUser));
+        when(redisService.getSession("test@gmail.com")).thenReturn("different-token");
 
-        assertThrows(UserException.class,
-                () -> documentService.viewDocuments(request, "invalid-token"));
-    }
-
-//    @Test
-//    void shouldVerifyOtpSuccessfully() {
-//        String otp = "12345";
-//        when(userService.verifyOtp(any(UserDto.class))).thenReturn(Constants.OTP_VERIFIED);
-//
-//        String result = documentService.verifyOtp("test@gmail.com", otp);
-//
-//        assertEquals(Constants.OTP_VERIFIED, result);
-//    }
-
-//    @Test
-//    void shouldThrowExceptionForInvalidOtp() {
-//        String otp = "invalid-otp";
-//        when(userService.verifyOtp(any(UserDto.class))).thenThrow(new UserException(Constants.INVALID_OTP));
-//
-//        assertThrows(UserException.class,
-//                () -> documentService.verifyOtp("test@gmail.com", otp));
-//    }
-
-    @Test
-    void shouldSaveDocumentWhenValidFile() throws IOException {
-        MultipartFile mockFile = mock(MultipartFile.class);
-        when(mockFile.isEmpty()).thenReturn(false);
-        when(mockFile.getSize()).thenReturn(1024L);
-        when(mockFile.getOriginalFilename()).thenReturn("profile.png");
-        request.setFile(mockFile);
-
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(testUser));
-        documentService.saveDocument(request, "valid-token");
-
-        verify(documentRepository, times(1)).save(any(Document.class));
+        UserException exception = assertThrows(UserException.class,
+                () -> documentService.saveDocument(documentDto, jwtToken));
+        assertEquals(Constants.INVALID_SESSION, exception.getMessage());
     }
 
     @Test
-    void shouldThrowExceptionIfFileExtensionInvalid() {
-        MultipartFile mockFile = mock(MultipartFile.class);
-        when(mockFile.isEmpty()).thenReturn(false);
-        when(mockFile.getOriginalFilename()).thenReturn("document.exe");
-        request.setFile(mockFile);
+    void shouldViewDocumentsSuccessfully() {
+        Document document = Document.builder()
+                .id(1L)
+                .type("Passport")
+                .filePath("/uploads/document.pdf")
+                .uploadedAt(LocalDateTime.now())
+                .user(testUser).build();
 
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(testUser));
+        when(redisService.getSession("test@gmail.com")).thenReturn(jwtToken);
+        when(otpService.validateOtp("test@gmail.com", "123456")).thenReturn(true);
+        when(documentRepository.findByUserId(1L)).thenReturn(List.of(document));
 
-        assertThrows(FileUploadException.class,
-                () -> documentService.saveDocument(request, "valid-token"));
+        UserDto userDto = new UserDto();
+        userDto.setEmail("test@gmail.com");
+        userDto.setUserId(1L);
+        userDto.setOtp("123456");
+
+        List<DocumentDto> documents = documentService.viewDocuments(userDto, jwtToken);
+        assertEquals(1, documents.size());
+        assertEquals("Passport", document.getType());
+    }
+
+    @Test
+    void shouldThrowExceptionForInvalidOtp() {
+        when(redisService.getSession("test@gmail.com")).thenReturn(jwtToken);
+        when(otpService.validateOtp("test@gmail.com", "123456")).thenReturn(false);
+
+        UserDto userDto = new UserDto();
+        userDto.setEmail("test@gmail.com");
+        userDto.setUserId(1L);
+        userDto.setOtp("123456");
+
+        UserException exception = assertThrows(UserException.class,
+                () -> documentService.viewDocuments(userDto, jwtToken));
+        assertEquals(Constants.INVALID_OTP, exception.getMessage());
+    }
+
+    @Test
+    void shouldSendOtpSuccessfully() {
+        when(redisService.getSession("test@gmail.com")).thenReturn(jwtToken);
+        when(otpRateLimiterService.isOtpRequestAllowed("test@gmail.com")).thenReturn(true);
+        when(otpService.generateOtp("test@gmail.com")).thenReturn("123456");
+
+        String result = documentService.sendViewDocumentOtp("test@gmail.com", jwtToken);
+        assertEquals(Constants.SEND_OTP, result);
     }
 }

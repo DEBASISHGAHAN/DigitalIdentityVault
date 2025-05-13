@@ -21,5 +21,4 @@ public class Constants {
     public static final String INVALID_FILE_FORMAT = "Invalid file format. Only PNG, JPG, JPEG, PDF are allowed.";
     public static final String OTP_REQUEST_EXCEED = "You have reached the maximum OTP attempts. Please try again after 24 hours.";
     public static final String INVALID_SESSION = "Invalid Session Token";
-    public static final String OTP_VERIFIED = "OTP verified successfully";
 }

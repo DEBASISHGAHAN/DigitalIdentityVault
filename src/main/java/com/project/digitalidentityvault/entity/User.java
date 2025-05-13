@@ -12,19 +12,28 @@ import java.util.Set;
 @Setter
 @Getter
 @Builder
-@NoArgsConstructor
+@RequiredArgsConstructor
 @AllArgsConstructor
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    @Column(length = 30)
     private String email;
+    @Column(length = 30)
     private String password;
     private Boolean verified;
     private LocalDateTime lastActiveAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Document> documents = new HashSet<>();
+
+    @Override
+    public String toString(){
+        StringBuilder builder = new StringBuilder();
+        return builder.append("User [id=").append(id).append(", email=").append(email)
+                .append(", password=").append(password).append(", verified=").append(verified)
+                .append(", lastActiveAt=").append(lastActiveAt).toString();
+    }
 }
 

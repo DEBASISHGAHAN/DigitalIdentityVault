@@ -15,13 +15,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.project.digitalidentityvault.util.Validation.isValidFileExtension;
 import static com.project.digitalidentityvault.util.Validation.validateEmail;
@@ -50,7 +53,7 @@ public class DocumentService {
         User user = validateDocumentRequest(request);
         // Generate and Save File
         String filePath = generateFilePath(user, request);
-        request.getFile().transferTo(Path.of(filePath));
+        saveFile(request.getFile(), filePath);
         log.info("Document saved at: {}", filePath);
         // Save Document in Database
         Document document = Document.builder()
@@ -62,20 +65,20 @@ public class DocumentService {
         documentRepository.save(document);
     }
 
-    public List<DocumentDto> viewDocuments(UserDto user, String token) throws UsernameNotFoundException {
-        log.info("Fetching documents for user: {}", user.getEmail());
+    public List<DocumentDto> viewDocuments(UserDto userDto, String token) throws UsernameNotFoundException {
+        log.info("Fetching documents for user: {}", userDto.getEmail());
         // Validate Session
-        validateSession(user.getEmail(), token);
-        if (!otpService.validateOtp(user.getEmail(), user.getOtp())){
+        validateSession(userDto.getEmail(), token);
+        if (!otpService.validateOtp(userDto.getEmail(), userDto.getOtp())){
             throw new UserException(Constants.INVALID_OTP);
         }
-        List<Document> documents = documentRepository.findByUserId(user.getUserId());
+        List<Document> documents = documentRepository.findByUserId(userDto.getUserId());
 
         return documents.stream()
                 .map(doc -> new DocumentDto(
                         doc.getType(),
                         doc.getFilePath()))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public String sendViewDocumentOtp(String email, String token) {
@@ -96,7 +99,8 @@ public class DocumentService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException(Constants.USER_NOT_FOUND));
         // Validate File
-        if (request.getFile().isEmpty()) {
+        MultipartFile file = request.getFile();
+        if (file == null || file.isEmpty()) {
             throw new FileNotFoundException(Constants.FILE_EMPTY);
         }
         // Validate File Size
@@ -104,11 +108,16 @@ public class DocumentService {
             throw new FileUploadException(Constants.FILE_UPLOAD_SIZE_EXCEEDS);
         }
         // Validate File Extension
-        String fileName = request.getFile().getOriginalFilename();
-        if (fileName == null || !isValidFileExtension(fileName)) {
+        if (!isValidFileExtension(file.getOriginalFilename())) {
             throw new FileUploadException(Constants.INVALID_FILE_FORMAT);
         }
         return user;
+    }
+
+    private void saveFile(MultipartFile file, String filePath) throws IOException {
+        Path path = Path.of(filePath);
+        Files.createDirectories(path.getParent());
+        file.transferTo(path);
     }
 
     private String generateFilePath(User user, DocumentDto request) {
@@ -117,8 +126,10 @@ public class DocumentService {
     }
 
     private void validateSession(String email, String token) {
-        String session = redisService.getSession(email);
-        if (session.isEmpty() || !session.equals(token)) {
+        String session = Optional.ofNullable(redisService.getSession(email))
+                .orElseThrow(() -> new UserException(Constants.INVALID_SESSION));
+
+        if (!session.equals(token)) {
             throw new UserException(Constants.INVALID_SESSION);
         }
     }
